@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f7f8fb">
-  <title>拾题 · iPad 离线题库</title>
+  <title>拾题 4.1 · iPad 离线网页应用 · 个人题库</title>
   <style>
     :root{--bg:#f7f8fb;--card:#fff;--text:#20283c;--muted:#798297;--line:#e9edf4;--accent:#485fe2;--pale:#eff1ff;--green:#167d57;--green-bg:#e9f8f1;--red:#c94b60;--red-bg:#fff0f2;--radius:16px;--shadow:0 9px 34px rgba(37,50,96,.045)}
     *{box-sizing:border-box} html{font-size:16px} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif} button,input,select,textarea{font:inherit} button{cursor:pointer} [hidden]{display:none!important} :focus-visible{outline:3px solid #9ba8ff;outline-offset:2px}
@@ -129,18 +129,16 @@
     @media(max-width:720px){.tablet-restore-content{display:block}.tablet-restore-picker{max-width:none;margin-top:15px}.top-actions #importBtn{display:inline-flex}}
     @media(max-width:375px){.top-actions #importBtn{font-size:11px;padding:5px 6px}.top-actions #exportBtn{font-size:11px;padding:5px 6px}.top{gap:8px}}
   </style>
-  <!-- 拾题 4.0.3 · iPad/PWA 安装配置，原题库逻辑保留 -->
-  <link rel="manifest" href="./manifest.webmanifest">
-  <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
-  <link rel="icon" sizes="192x192" href="./icon-192.png" type="image/png">
+  <meta name="theme-color" content="#5366cf">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="拾题">
-  <meta name="description" content="拾题：支持离线刷题、分科分章错题本、笔记及备份恢复的私人题库。">
-  <style>
-    .pwa-hint{padding:10px 28px;background:#edf3ff;border-bottom:1px solid #d8e5ff;color:#31517c;font-size:13px;line-height:1.55}
-    @media(max-width:720px){.pwa-hint{padding:9px 14px;font-size:12px}}
-  </style>
+  <meta name="application-name" content="拾题">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="拾题离线题库｜章节续刷、错题巩固、学习笔记。题库保存在本机。">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 </head>
 <body>
 <div class="app">
@@ -148,7 +146,6 @@
     <div class="brand"><div class="brand-icon" aria-hidden="true">拾</div><div><div class="brand-title">拾题 <span style="font-size:13px;font-weight:500;color:#a0a8ba">/ 个人题库</span></div><div class="brand-sub">把每一道练过的题，都变成进步</div></div></div>
     <div class="top-actions"><button type="button" id="exportBtn" class="btn" title="下载包含题目及做题记录的备份文件">↓ 备份</button><button type="button" id="goBulk" class="btn primary">＋ 批量导题</button><button type="button" id="importBtn" class="btn" title="仅用于恢复之前导出的 JSON 完整备份（会覆盖题库）">↑ 恢复备份</button><input id="importInput" type="file" accept=".json,application/json" hidden></div>
   </header>
-  <div id="pwaHint" class="pwa-hint" role="status" aria-live="polite" hidden></div>
   <div class="layout">
     <aside>
       <div class="nav-label">学习工作台</div>
@@ -158,12 +155,17 @@
       <button class="nav" data-tab="questions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8m-8 4h8m-8 4h5"/></svg>题目管理</button>
       <button class="nav" data-tab="bulk">📥 &nbsp; 批量导入</button>
       <button class="nav" data-tab="editor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 5v14M5 12h14"/><circle cx="12" cy="12" r="10"/></svg>录入习题</button>
-      <div class="side-bottom"><strong>💾 本地私有题库</strong><br>内容保存在当前浏览器中。<br>请定期点击顶部「备份」。</div>
+      <div class="side-bottom"><strong>💾 本地私有题库</strong><br>内容保存在本机网页应用中。<br>卸载 App 或清理网站数据可能丢失记录；<br>请定期点击顶部「备份」。</div>
     </aside>
     <main>
       <div id="storageNotice" class="notice" role="status">正在检查题库保存空间，请不要在加载完成前操作……</div>
       <section id="panel-home">
         <div class="section-header"><div><p class="eyebrow">MY STUDY SPACE</p><h1 class="heading">今日学习概览</h1><p class="description">你的专属选择题题库，按科目整理，按章节巩固。</p></div><div class="toolbar"><button class="btn soft" type="button" data-go="bulk">批量导入题目</button><button class="btn primary" type="button" data-go="practice">开始刷题 →</button></div></div>
+        <div class="card pad" id="shitiPwaTip" style="margin:0 0 18px;background:#f8f9ff;border:1px solid #e2e7fa;box-shadow:none">
+          <div style="font-weight:750;color:#384b8c;font-size:14px">📱 iPad 网页 App · 本机私有题库</div>
+          <div style="font-size:12px;color:#66718d;margin-top:6px;line-height:1.75">首次安装需要联网：在 Safari 里打开本站，点击「分享 → 添加到主屏幕」，开启「打开为网页 App」。之后请<strong>从主屏幕图标打开</strong>，再恢复完整 JSON 备份。离线缓存完成后可断网刷题；答题记录只保存在当前设备，建议定期点击顶部「备份」。</div>
+          <div id="shitiPwaStatus" aria-live="polite" style="font-size:12px;color:#5366cf;margin-top:8px">正在检测离线状态……</div>
+        </div>
         <div id="stats" class="stat-grid"></div>
         <div class="card pad tablet-restore" aria-labelledby="tabletRestoreTitle">
           <div class="tablet-restore-content"><div><h2 id="tabletRestoreTitle" class="subhead" style="margin:0 0 6px">📦 从另一台设备恢复题库</h2><p class="hint" style="margin:0">请选择在旧设备「↓ 备份」导出的 <strong>.json</strong> 文件。会恢复科目、章节、笔记、错题和历史记录，并替换当前设备的数据。大题库会优先保存在 IndexedDB 中；若平板的文件预览器禁用存储，请改用正常浏览器打开固定网址。</p></div>
@@ -200,7 +202,7 @@
         <div class="card pad wrong-guide"><div class="wrong-guide-icon">✦</div><div><strong>只复习仍然不会的题</strong><p>点击科目或章节展开题目；点击右侧「重刷」开始该范围的错题练习。做错后继续保留，重新答对自动移出；你曾经做错的次数始终计入每道题的累计正确率。</p></div></div>
         <div id="wrongContent" class="wrong-outline" aria-label="按科目及章节分组的错题本"></div>
       </section>
-      <section id="panel-questions" hidden><div class="section-header"><div><p class="eyebrow">YOUR QUESTION LIBRARY</p><h1 class="heading">题目管理</h1><p class="description">搜索、修改和删除你录入的习题。</p></div><div class="toolbar"><button type="button" class="btn primary" data-go="bulk">↑ 批量导入</button><button type="button" class="btn" data-go="editor">＋ 手动录题</button></div></div><div class="search-row" style="margin-bottom:19px"><label for="qSearch" class="sr-only">搜索题干</label><input class="input" id="qSearch" placeholder="搜索题干、选项、解析、来源…"><label for="qFilterSubject" class="sr-only">筛选科目</label><select class="select" id="qFilterSubject"></select><span class="secondary muted" id="questionListCount" style="font-size:12px"></span></div><div id="questionList" class="question-list"></div></section>
+      <section id="panel-questions" hidden><div class="section-header"><div><p class="eyebrow">YOUR QUESTION LIBRARY</p><h1 class="heading">题目管理</h1><p class="description">搜索、修改和删除你录入的习题。每次最多加载 36 道，切换科目与章节更流畅。</p></div><div class="toolbar"><button type="button" class="btn primary" data-go="bulk">↑ 批量导入</button><button type="button" class="btn" data-go="editor">＋ 手动录题</button></div></div><div class="search-row" style="margin-bottom:19px"><label for="qSearch" class="sr-only">搜索题干</label><input class="input" id="qSearch" placeholder="搜索题干、选项、解析、来源…"><label for="qFilterSubject" class="sr-only">筛选科目</label><select class="select" id="qFilterSubject"></select><span class="secondary muted" id="questionListCount" style="font-size:12px"></span></div><div id="questionList" class="question-list"></div></section>
 
       <section id="panel-bulk" hidden>
         <div class="section-header"><div><p class="eyebrow">BATCH IMPORT</p><h1 class="heading">批量导入选择题</h1><p class="description">把 Word、Excel、CSV 或纯文本整理成可刷的题。先预览、核对答案，再一次性入库。</p></div><button class="btn" type="button" data-go="editor">＋ 手动录入</button></div>
@@ -650,12 +652,33 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     switchTab('practice');startQuiz(ids,{mode:'wrong',subjectId:sbtn?.dataset.wrongReviewSubject||chap(cbtn.dataset.wrongReviewChapter)?.subjectId||null});
     showToast(`已开始「${scope||'当前范围'}」错题重刷，共 ${ids.length} 道`);
   });
-  function renderQuestionList(){const term=$('qSearch').value.trim().toLowerCase(),sid=$('qFilterSubject').value;const list=db.questions.filter(q=>(!sid||q.subjectId===sid)&&(!term||[q.stem,q.explanation,q.source,...q.options].some(v=>String(v||'').toLowerCase().includes(term))));$('questionListCount').textContent=`共 ${list.length} 道题`;$('questionList').innerHTML=list.length?list.map(q=>cardHtml(q,'manage')).join(''):empty('📄',db.questions.length?'没有匹配的题目':'题库还是空的',db.questions.length?'换个关键词或科目试试看。':'去录入第一道题，开始建立你的私人题库。','<button type="button" class="btn primary" data-questions-editor="1">＋ 录入习题</button>');}
-  $('qSearch').addEventListener('input',renderQuestionList);$('qFilterSubject').addEventListener('change',renderQuestionList);
+  // 4.2 性能修复：数据库中保留全部题目，DOM 中只渲染当前前 36 条。
+  // 千万不要把上千张题卡同时插入 iPad 的 WebKit，这会使原生 select 点击也阻塞。
+  const MANAGE_PAGE_SIZE=36;
+  let manageShown=MANAGE_PAGE_SIZE,manageMatches=[];
+  function renderQuestionList(){
+    const term=$('qSearch').value.trim().toLowerCase();
+    const sid=$('qFilterSubject').value;
+    const cid=$('manageChapterFilter')?.value||'';
+    manageMatches=db.questions.filter(q=>
+      (!sid||q.subjectId===sid)&&(!cid||q.chapterId===cid)&&
+      (!term||[q.stem,q.explanation,q.source,...(q.options||[])].some(v=>String(v||'').toLowerCase().includes(term)))
+    );
+    const shown=manageMatches.slice(0,manageShown);
+    $('questionListCount').textContent=`共 ${manageMatches.length} 道 · 已显示 ${shown.length} 道`;
+    $('questionList').innerHTML=shown.length
+      ?shown.map(q=>cardHtml(q,'manage').replace('class="list-card-head">',
+        `class="list-card-head"><label class="multi-select-item"><input type="checkbox" data-multi-id="${esc(q.id)}"><span>选择</span></label>`)).join('')
+      :empty('📄',db.questions.length?'没有匹配的题目':'题库还是空的',db.questions.length?'换个关键词、科目或章节试试看。':'去录入第一道题，开始建立你的私人题库。','<button type="button" class="btn primary" data-questions-editor="1">＋ 录入习题</button>');
+    const more=$('manageLoadMore');
+    if(more){more.hidden=shown.length>=manageMatches.length;more.textContent=`继续显示 ${Math.min(MANAGE_PAGE_SIZE,manageMatches.length-shown.length)} 道（剩余 ${manageMatches.length-shown.length} 道）`;}
+  }
+  // 筛选事件交给下方的批量管理模块统一处理，避免重复生成几千张题卡。
+
   $('questionList').addEventListener('click',e=>{if(e.target.closest('[data-questions-editor]')){resetEditor();switchTab('editor');}});
   function listEvents(root){root.addEventListener('click',e=>{const star=e.target.closest('[data-list-star]'),one=e.target.closest('[data-one]'),edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]'),preview=e.target.closest('[data-preview]');if(star){const q=question(star.dataset.listStar);if(q){q.starred=!q.starred;save();renderAll();}return;}if(one){switchTab('practice');startQuiz([one.dataset.one]);return;}if(edit){editQuestion(edit.dataset.edit);return;}if(del){removeQuestion(del.dataset.delete);return;}if(preview){const detail=root.querySelector(`[data-detail="${CSS.escape(preview.dataset.preview)}"]`);if(detail){detail.hidden=!detail.hidden;preview.textContent=detail.hidden?'答案解析 ▾':'收起解析 ▴';}}});}
   listEvents($('questionList'));listEvents($('wrongContent'));
-  function renderAll(){refreshSelects();renderHome();renderWrong();renderQuestionList();renderChapterTree();if(state.tab==='practice'&&!state.quiz)renderQuiz();}
+  function renderAll(){refreshSelects();renderHome();renderWrong();if(state.tab==='questions')renderQuestionList();renderChapterTree();if(state.tab==='practice'&&!state.quiz)renderQuiz();}
   function exportBackup(){const json=JSON.stringify(db,null,2);const blob=new Blob([json],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='拾题_完整备份_'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);showToast('备份文件已生成，请妥善保存');}
   $('exportBtn').addEventListener('click',exportBackup);
   $('importBtn').addEventListener('click',()=>$('importInput').click());
@@ -897,7 +920,6 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       noteTimer = setTimeout(() => { noteTimer = null; save(); }, 400);
     };
     window.addEventListener('pagehide', flushNotes);
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') flushNotes(); });
     const noteMarkup = (q, compact = false) => `<div class="personal-note${compact ? ' compact' : ''}"><div class="personal-note-title">📝 我的笔记</div><textarea data-personal-note="${esc(q.id)}" maxlength="10000" placeholder="记下你的解题思路、易错点或需要复习的知识…">${esc(q.personalNote || '')}</textarea><p class="personal-note-tip">笔记独立于题目解析，自动保存并包含在题库备份中。</p></div>`;
 
     const oldRenderQuiz = renderQuiz;
@@ -957,30 +979,28 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   })();
   // ===== 补丁结束 =====
 
-  // ===== 拾题 3.0：题目管理批量勾选与安全删除补丁 =====
+  // ===== 拾题 4.2：iPad 高性能题目管理、多选与安全删除 =====
   (() => {
-    const selectedIds = new Set();
-    const listRoot = $('questionList');
-    const subjectFilter = $('qFilterSubject');
-    const searchInput = $('qSearch');
-    const countLabel = $('questionListCount');
-    const chapterFilter = document.createElement('select');
-    chapterFilter.id = 'manageChapterFilter';
-    chapterFilter.className = 'select';
-    chapterFilter.setAttribute('aria-label', '题目管理：筛选章节');
-    countLabel.parentElement.insertBefore(chapterFilter, countLabel);
+    const selectedIds=new Set();
+    const root=$('questionList'),filter=$('qFilterSubject'),search=$('qSearch'),counter=$('questionListCount');
+    const chapterFilter=document.createElement('select');
+    chapterFilter.id='manageChapterFilter';chapterFilter.className='select';
+    chapterFilter.setAttribute('aria-label','按章节筛选题目');
+    counter.parentNode.insertBefore(chapterFilter,counter);
 
-    const toolbar = document.createElement('div');
-    toolbar.className = 'multi-delete-bar';
-    toolbar.innerHTML = '<label class="multi-select-all"><input id="multiSelectAll" type="checkbox"><span>全选当前结果</span></label>' +
-      '<button class="btn small" id="multiSelectInvert" type="button">反选</button>' +
-      '<button class="btn small" id="multiSelectClear" type="button">取消选择</button>' +
-      '<span id="multiSelectedCount" class="multi-count" aria-live="polite">已选 0 道</span>' +
-      '<button class="btn red" id="multiDeleteButton" type="button" disabled>删除选中（0）</button>';
-    listRoot.parentNode.insertBefore(toolbar, listRoot);
-
-    const css = document.createElement('style');
-    css.textContent = `
+    const toolbar=document.createElement('div');
+    toolbar.className='multi-delete-bar';
+    toolbar.innerHTML=`<label class="multi-select-all"><input id="multiSelectAll" type="checkbox"><span>全选当前筛选结果</span></label>
+      <button class="btn small" id="multiSelectInvert" type="button">反选</button>
+      <button class="btn small" id="multiSelectClear" type="button">取消选择</button>
+      <span id="multiSelectedCount" class="multi-count" aria-live="polite">已选 0 道</span>
+      <button class="btn red" id="multiDeleteButton" type="button" disabled>删除选中（0）</button>`;
+    root.before(toolbar);
+    const more=document.createElement('button');
+    more.id='manageLoadMore';more.type='button';more.className='btn manage-load-more';
+    more.hidden=true;root.after(more);
+    const style=document.createElement('style');
+    style.textContent=`
       .multi-delete-bar{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:13px 15px;margin-bottom:14px;border:1px solid var(--line);background:#fff;border-radius:12px}
       .multi-select-all{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;font-weight:650;min-height:38px}
       .multi-select-all input,.multi-select-item input{width:19px;height:19px;accent-color:var(--accent);cursor:pointer}
@@ -989,139 +1009,94 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       .multi-count{font-size:12px;color:var(--muted);margin-left:auto}
       #multiDeleteButton:disabled{opacity:.45;cursor:not-allowed}
       #manageChapterFilter{max-width:230px}
+      #manageLoadMore{display:block;width:min(460px,100%);margin:18px auto 30px;min-height:48px}
+      #manageLoadMore[hidden]{display:none}
       @media(max-width:720px){#manageChapterFilter{max-width:none;width:100%}.multi-count{margin-left:0}#multiDeleteButton{width:100%}.multi-delete-bar{gap:7px}}
     `;
-    document.head.appendChild(css);
+    document.head.appendChild(style);
 
-    function refreshChapters() {
-      const prev = chapterFilter.value;
-      const sid = subjectFilter.value;
-      const chapters = db.chapters.filter(c => !sid || c.subjectId === sid);
-      chapterFilter.innerHTML = '<option value="">全部章节</option>' +
-        chapters.map(c => `<option value="${esc(c.id)}">${esc(sid ? c.name : `${subj(c.subjectId)?.name || ''} · ${c.name}`)}</option>`).join('');
-      chapterFilter.value = chapters.some(c => c.id === prev) ? prev : '';
+    function refreshChapters(){
+      const old=chapterFilter.value,sid=filter.value;
+      const chapters=db.chapters.filter(c=>!sid||c.subjectId===sid).sort((a,b)=>chapterSortKey(a.name)-chapterSortKey(b.name));
+      chapterFilter.innerHTML='<option value="">全部章节</option>'+chapters.map(c=>
+        `<option value="${esc(c.id)}">${esc(sid?c.name:`${subj(c.subjectId)?.name||''} · ${c.name}`)}</option>`).join('');
+      chapterFilter.value=chapters.some(c=>c.id===old)?old:'';
     }
-    function visibleCards() {
-      return [...listRoot.querySelectorAll('article.list-card')].filter(el => !!el.querySelector('[data-delete]'));
+    function syncSelection(){
+      // 选择集合按“筛选后的全部题目”计算，而不是只针对屏幕上显示的36道。
+      const total=manageMatches.length;
+      const wanted=new Set(manageMatches.map(q=>q.id));
+      for(const id of selectedIds)if(!wanted.has(id))selectedIds.delete(id);
+      root.querySelectorAll('[data-multi-id]').forEach(input=>{
+        const active=selectedIds.has(input.dataset.multiId);input.checked=active;
+        input.closest('.list-card')?.classList.toggle('multi-selected-card',active);
+      });
+      const chosen=selectedIds.size,all=$('multiSelectAll');
+      all.checked=total>0&&chosen===total;
+      all.indeterminate=chosen>0&&chosen<total;
+      all.disabled=!total;
+      $('multiSelectedCount').textContent=`已选 ${chosen} / 筛选结果 ${total} 道`;
+      $('multiDeleteButton').textContent=`删除选中（${chosen}）`;
+      $('multiDeleteButton').disabled=chosen===0;
+      $('multiSelectInvert').disabled=!total;
+      $('multiSelectClear').disabled=chosen===0;
     }
-    function syncSelection() {
-      const cards = visibleCards();
-      const ids = cards.map(card => card.querySelector('[data-delete]').dataset.delete);
-      const allowed = new Set(ids);
-      for (const id of selectedIds) if (!allowed.has(id)) selectedIds.delete(id);
-      for (const card of cards) {
-        const id = card.querySelector('[data-delete]').dataset.delete;
-        const input = card.querySelector('[data-multi-id]');
-        if (input) input.checked = selectedIds.has(id);
-        card.classList.toggle('multi-selected-card', selectedIds.has(id));
-      }
-      const all = $('multiSelectAll');
-      const totalSelected = selectedIds.size;
-      all.checked = ids.length > 0 && totalSelected === ids.length;
-      all.indeterminate = totalSelected > 0 && totalSelected < ids.length;
-      all.disabled = ids.length === 0;
-      $('multiSelectedCount').textContent = `已选 ${totalSelected} / 当前 ${ids.length} 道`;
-      $('multiDeleteButton').textContent = `删除选中（${totalSelected}）`;
-      $('multiDeleteButton').disabled = totalSelected === 0;
-      $('multiSelectInvert').disabled = ids.length === 0;
-      $('multiSelectClear').disabled = totalSelected === 0;
-    }
-    function enhanceList() {
-      refreshChapters();
-      const cid = chapterFilter.value;
-      for (const card of visibleCards()) {
-        const id = card.querySelector('[data-delete]').dataset.delete;
-        const q = question(id);
-        if (!q || (cid && q.chapterId !== cid)) {
-          card.remove();
-          continue;
-        }
-        if (!card.querySelector('[data-multi-id]')) {
-          const head = card.querySelector('.list-card-head');
-          if (head) head.insertAdjacentHTML('afterbegin',
-            `<label class="multi-select-item"><input type="checkbox" data-multi-id="${esc(id)}"><span>选择</span></label>`);
-        }
-      }
-      const len = visibleCards().length;
-      countLabel.textContent = `共 ${len} 道题`;
-      if (!len && db.questions.length && !listRoot.querySelector('.empty')) {
-        listRoot.innerHTML = empty('📄', '没有匹配的题目', '请调整科目、章节或搜索关键词。');
-      }
-      syncSelection();
-    }
-
-    // renderAll 会调用新版；旧输入监听器仍调用原函数，故在其后补一次增强。
-    const originalRender = renderQuestionList;
-    renderQuestionList = function () {
-      originalRender();
-      enhanceList();
+    const rawRender=renderQuestionList;
+    renderQuestionList=function(){
+      refreshChapters();rawRender();syncSelection();
     };
-    const clearOnFilterChange = () => { selectedIds.clear(); enhanceList(); };
-    searchInput.addEventListener('input', clearOnFilterChange);
-    subjectFilter.addEventListener('change', clearOnFilterChange);
-    chapterFilter.addEventListener('change', () => { selectedIds.clear(); renderQuestionList(); });
-
-    listRoot.addEventListener('change', e => {
-      const input = e.target.closest('[data-multi-id]');
-      if (!input) return;
-      const id = input.dataset.multiId;
-      if (!question(id)) return;
-      if (input.checked) selectedIds.add(id);
-      else selectedIds.delete(id);
+    function resetFilter(){selectedIds.clear();manageShown=MANAGE_PAGE_SIZE;renderQuestionList();}
+    let timer=0;
+    search.addEventListener('input',()=>{
+      clearTimeout(timer);
+      timer=setTimeout(resetFilter,130);
+    });
+    filter.addEventListener('change',()=>{clearTimeout(timer);chapterFilter.value='';resetFilter();});
+    chapterFilter.addEventListener('change',()=>{selectedIds.clear();manageShown=MANAGE_PAGE_SIZE;rawRender();syncSelection();});
+    more.addEventListener('click',()=>{manageShown+=MANAGE_PAGE_SIZE;renderQuestionList();});
+    root.addEventListener('change',e=>{
+      const input=e.target.closest('[data-multi-id]');if(!input)return;
+      if(input.checked)selectedIds.add(input.dataset.multiId);else selectedIds.delete(input.dataset.multiId);
       syncSelection();
     });
-    $('multiSelectAll').addEventListener('change', e => {
-      selectedIds.clear();
-      if (e.target.checked) for (const card of visibleCards()) selectedIds.add(card.querySelector('[data-delete]').dataset.delete);
-      syncSelection();
+    $('multiSelectAll').addEventListener('change',e=>{
+      selectedIds.clear();if(e.target.checked)manageMatches.forEach(q=>selectedIds.add(q.id));syncSelection();
     });
-    $('multiSelectInvert').addEventListener('click', () => {
-      for (const card of visibleCards()) {
-        const id = card.querySelector('[data-delete]').dataset.delete;
-        if (selectedIds.has(id)) selectedIds.delete(id);
-        else selectedIds.add(id);
-      }
-      syncSelection();
+    $('multiSelectInvert').addEventListener('click',()=>{
+      for(const q of manageMatches){if(selectedIds.has(q.id))selectedIds.delete(q.id);else selectedIds.add(q.id);}syncSelection();
     });
-    $('multiSelectClear').addEventListener('click', () => { selectedIds.clear(); syncSelection(); });
-
-    $('multiDeleteButton').addEventListener('click', () => {
-      const ids = new Set([...selectedIds].filter(id => !!question(id)));
-      if (!ids.size) return;
-      const affected = db.questions.filter(q => ids.has(q.id));
-      const attemptsRemoved = db.attempts.filter(a => ids.has(a.questionId)).length;
-      const preview = affected.slice(0, 3).map((q, i) => `${i + 1}. ${q.stem.replace(/\s+/g, ' ').slice(0, 48)}`).join('\n');
-      if (!confirm(`确定永久删除选中的 ${ids.size} 道题吗？\n\n${preview}${ids.size > 3 ? '\n…' : ''}\n\n将同时删除这批题的 ${attemptsRemoved} 条历史作答、错题记录与个人笔记。\n【其他题目和答题记录不受影响】\n\n此操作不可撤销，建议先点右上角「备份」。`)) return;
-
-      if (ids.size >= 20) {
-        const typed = prompt(`为了避免误删大量题目，请输入本次删除数量 ${ids.size} 以再次确认：`);
-        if (typed !== String(ids.size)) { showToast('已取消批量删除，题目未发生变化'); return; }
+    $('multiSelectClear').addEventListener('click',()=>{selectedIds.clear();syncSelection();});
+    $('multiDeleteButton').addEventListener('click',()=>{
+      const ids=new Set([...selectedIds].filter(id=>!!question(id)));
+      if(!ids.size)return;
+      const affected=db.questions.filter(q=>ids.has(q.id));
+      const attemptsRemoved=db.attempts.filter(a=>ids.has(a.questionId)).length;
+      const preview=affected.slice(0,3).map((q,i)=>`${i+1}. ${q.stem.replace(/\s+/g,' ').slice(0,48)}`).join('\n');
+      const scope=filter.value?(subj(filter.value)?.name||'选定科目'):'全部科目';
+      if(!confirm(`当前筛选范围：${scope}\n确定永久删除选中的 ${ids.size} 道题吗？\n\n${preview}${ids.size>3?'\n…':''}\n\n会同时删除这些题的 ${attemptsRemoved} 条作答记录及相关笔记。\n其他题目不受影响。\n\n建议先备份；此操作不可撤销。`))return;
+      if(ids.size>=20){
+        const typed=prompt(`防止误删：请准确输入本次删除的题目数量 ${ids.size}：`);
+        if(typed!==String(ids.size)){showToast('已取消删除');return;}
       }
-      const snapshot = JSON.stringify(db);
-      db.questions = db.questions.filter(q => !ids.has(q.id));
-      const removedAttempts = new Set(db.attempts.filter(a => ids.has(a.questionId)).map(a => a.id));
-      db.attempts = db.attempts.filter(a => !ids.has(a.questionId));
-      for (const progress of Object.values(db.chapterProgress || {})) {
-        if (!progress || !Array.isArray(progress.ids)) continue;
-        const oldIndex = Math.max(0, Math.floor(Number(progress.index) || 0));
-        const precedingRemoved = progress.ids.slice(0, oldIndex).filter(id => ids.has(id)).length;
-        progress.ids = progress.ids.filter(id => !ids.has(id));
-        progress.index = Math.min(progress.ids.length, Math.max(0, oldIndex - precedingRemoved));
-        if (Array.isArray(progress.answerIds)) progress.answerIds = progress.answerIds.filter(id => !removedAttempts.has(id));
-        if (!progress.ids.length) progress.completedAt = null;
+      const snapshot=JSON.stringify(db);
+      db.questions=db.questions.filter(q=>!ids.has(q.id));
+      const removedAttempts=new Set(db.attempts.filter(a=>ids.has(a.questionId)).map(a=>a.id));
+      db.attempts=db.attempts.filter(a=>!ids.has(a.questionId));
+      for(const progress of Object.values(db.chapterProgress||{})){
+        if(!progress||!Array.isArray(progress.ids))continue;
+        const ix=Math.max(0,Math.floor(Number(progress.index)||0));
+        const removedBefore=progress.ids.slice(0,ix).filter(id=>ids.has(id)).length;
+        progress.ids=progress.ids.filter(id=>!ids.has(id));
+        progress.index=Math.min(progress.ids.length,Math.max(0,ix-removedBefore));
+        if(Array.isArray(progress.answerIds))progress.answerIds=progress.answerIds.filter(id=>!removedAttempts.has(id));
+        if(!progress.ids.length)progress.completedAt=null;
       }
-      if (!save()) {
-        db = JSON.parse(snapshot);
-        renderAll();
-        return;
-      }
-      selectedIds.clear();
-      state.quiz = null;
-      renderAll();
-      showToast(`已删除 ${ids.size} 道题及其 ${attemptsRemoved} 条作答记录`);
+      if(!save()){db=JSON.parse(snapshot);renderAll();showToast('保存失败，已取消删除');return;}
+      selectedIds.clear();manageShown=MANAGE_PAGE_SIZE;state.quiz=null;renderAll();
+      showToast(`删除成功：${ids.size} 道题、${attemptsRemoved} 条历史作答`);
     });
   })();
-  // ===== 批量删除补丁结束 =====
+  // ===== 拾题 4.2 高性能批量管理结束 =====
 
   // ===== 拾题 3.2：科目重命名补丁（兼容 3.0 / 3.1） =====
   (() => {
@@ -1630,26 +1605,25 @@ https://github.com/nodeca/pako/blob/main/LICENSE
 })();
 </script>
 <script>
-/* 安装与离线提示：不接触题库正文、做题记录或个人笔记。 */
-(function(){
-  'use strict';
-  const banner=document.getElementById('pwaHint');
-  const standalone=window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
-  const isAppleTablet=/iPad/.test(navigator.userAgent)||(/Macintosh/.test(navigator.userAgent)&&navigator.maxTouchPoints>1);
-  function info(message){if(standalone)return;banner.textContent=message;banner.hidden=false;}
-  if(!('serviceWorker' in navigator)||!(window.isSecureContext)){
-    if(!standalone)info('请通过 HTTPS 网页地址访问拾题，才能安装为可离线运行的桌面 App；直接打开本地 HTML 文件不支持离线安装。');
+(() => {
+  const el = document.getElementById('shitiPwaStatus');
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  const set = message => { if (el) el.textContent = message; };
+  if (!('serviceWorker' in navigator) || !window.isSecureContext) {
+    set('⚠️ 当前不是 HTTPS 网页应用环境：请先部署到固定 HTTPS 网址后在 Safari 打开。');
     return;
   }
-  window.addEventListener('load', async ()=>{
-    try{
-      await navigator.serviceWorker.register('./sw.js', {scope:'./'});
-      await navigator.serviceWorker.ready;
-      if(isAppleTablet)info('✓ 题库程序已准备离线使用。iPad Safari → 分享 → 添加到主屏幕 → 打开为 Web App。安装后请从桌面图标打开，再导入旧备份。');
-      else info('✓ 拾题已准备离线使用。iPad 上请用 Safari 添加到主屏幕，安装后从桌面图标导入题库备份。');
-    }catch(err){
-      info('离线缓存未启用：'+(err.message||String(err))+'。请用 Safari 打开真实的 HTTPS 网页地址。');
-    }
+  const mode = standalone ? '✅ 已通过主屏幕 App 启动' : '💡 当前在浏览器中；建议添加到主屏幕后使用';
+  navigator.serviceWorker.register('./sw.js', {scope:'./'}).then(async reg => {
+    try { await navigator.serviceWorker.ready; }
+    catch (e) { /* serviceWorker.ready may wait; registration alone is still useful */ }
+    set(mode + ' · ✅ 离线缓存已启用（首次安装请联网打开一次）');
+  }).catch(error => {
+    set(mode + ' · ⚠️ 离线缓存启动失败：' + String(error?.message || error));
+  });
+  window.addEventListener('offline', () => set('✈️ 当前已离线：如果已完成首次缓存，可继续刷题；请定期备份。'));
+  window.addEventListener('online', () => {
+    if (navigator.serviceWorker.controller) set(mode + ' · ✅ 已联网，离线缓存可用');
   });
 })();
 </script>
