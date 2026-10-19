@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f7f8fb">
-  <title>拾题 4.1 · iPad 离线网页应用 · 个人题库</title>
+  <title>拾题 4.3 · 图片笔记 · iPad 离线题库</title>
   <style>
     :root{--bg:#f7f8fb;--card:#fff;--text:#20283c;--muted:#798297;--line:#e9edf4;--accent:#485fe2;--pale:#eff1ff;--green:#167d57;--green-bg:#e9f8f1;--red:#c94b60;--red-bg:#fff0f2;--radius:16px;--shadow:0 9px 34px rgba(37,50,96,.045)}
     *{box-sizing:border-box} html{font-size:16px} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif} button,input,select,textarea{font:inherit} button{cursor:pointer} [hidden]{display:none!important} :focus-visible{outline:3px solid #9ba8ff;outline-offset:2px}
@@ -144,7 +144,7 @@
 <div class="app">
   <header class="top">
     <div class="brand"><div class="brand-icon" aria-hidden="true">拾</div><div><div class="brand-title">拾题 <span style="font-size:13px;font-weight:500;color:#a0a8ba">/ 个人题库</span></div><div class="brand-sub">把每一道练过的题，都变成进步</div></div></div>
-    <div class="top-actions"><button type="button" id="exportBtn" class="btn" title="下载包含题目及做题记录的备份文件">↓ 备份</button><button type="button" id="goBulk" class="btn primary">＋ 批量导题</button><button type="button" id="importBtn" class="btn" title="仅用于恢复之前导出的 JSON 完整备份（会覆盖题库）">↑ 恢复备份</button><input id="importInput" type="file" accept=".json,application/json" hidden></div>
+    <div class="top-actions"><button type="button" id="exportBtn" class="btn" title="下载包含题目及做题记录的备份文件">↓ 备份</button><button type="button" id="goBulk" class="btn primary">＋ 批量导题</button><button type="button" id="importBtn" class="btn" title="恢复拾题 JSON 或图文 ZIP 完整备份（会覆盖当前题库）">↑ 恢复备份</button><input id="importInput" type="file" accept=".json,.zip,application/json,application/zip,application/x-zip-compressed" hidden></div>
   </header>
   <div class="layout">
     <aside>
@@ -169,7 +169,7 @@
         <div id="stats" class="stat-grid"></div>
         <div class="card pad tablet-restore" aria-labelledby="tabletRestoreTitle">
           <div class="tablet-restore-content"><div><h2 id="tabletRestoreTitle" class="subhead" style="margin:0 0 6px">📦 从另一台设备恢复题库</h2><p class="hint" style="margin:0">请选择在旧设备「↓ 备份」导出的 <strong>.json</strong> 文件。会恢复科目、章节、笔记、错题和历史记录，并替换当前设备的数据。大题库会优先保存在 IndexedDB 中；若平板的文件预览器禁用存储，请改用正常浏览器打开固定网址。</p></div>
-          <div class="tablet-restore-picker"><label for="tabletImportInput" class="field-label">选择完整备份文件（JSON）</label><input id="tabletImportInput" type="file" accept=".json,application/json" aria-label="选择拾题完整备份 JSON 文件"><p id="restoreStatus" class="restore-status" role="status" aria-live="polite"></p></div></div>
+          <div class="tablet-restore-picker"><label for="tabletImportInput" class="field-label">选择完整备份文件（JSON 或图文 ZIP）</label><input id="tabletImportInput" type="file" accept=".json,.zip,application/json,application/zip,application/x-zip-compressed" aria-label="选择拾题完整备份 JSON / ZIP 文件"><p id="restoreStatus" class="restore-status" role="status" aria-live="polite"></p></div></div>
         </div>
         <div class="home-cols"><div class="card pad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px"><h2 class="subhead" style="margin:0">我的科目</h2><button class="btn small soft" type="button" id="homeAddSubject">＋ 新建科目</button></div><div id="subjectCards" class="subject-list"></div></div><div class="card pad"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h2 class="subhead" style="margin:0">最近错题</h2><button class="btn small" type="button" data-go="wrong">打开错题本 →</button></div><div id="recentWrongs" style="margin-top:11px"></div></div></div>
       </section>
@@ -679,7 +679,26 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   function listEvents(root){root.addEventListener('click',e=>{const star=e.target.closest('[data-list-star]'),one=e.target.closest('[data-one]'),edit=e.target.closest('[data-edit]'),del=e.target.closest('[data-delete]'),preview=e.target.closest('[data-preview]');if(star){const q=question(star.dataset.listStar);if(q){q.starred=!q.starred;save();renderAll();}return;}if(one){switchTab('practice');startQuiz([one.dataset.one]);return;}if(edit){editQuestion(edit.dataset.edit);return;}if(del){removeQuestion(del.dataset.delete);return;}if(preview){const detail=root.querySelector(`[data-detail="${CSS.escape(preview.dataset.preview)}"]`);if(detail){detail.hidden=!detail.hidden;preview.textContent=detail.hidden?'答案解析 ▾':'收起解析 ▴';}}});}
   listEvents($('questionList'));listEvents($('wrongContent'));
   function renderAll(){refreshSelects();renderHome();renderWrong();if(state.tab==='questions')renderQuestionList();renderChapterTree();if(state.tab==='practice'&&!state.quiz)renderQuiz();}
-  function exportBackup(){const json=JSON.stringify(db,null,2);const blob=new Blob([json],{type:'application/json;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='拾题_完整备份_'+new Date().toISOString().slice(0,10)+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);showToast('备份文件已生成，请妥善保存');}
+  async function exportBackup(){
+    try{
+      if(storePending){showToast('正在等待最近的笔记保存…');await storeChain;}
+      const snapshot=JSON.parse(JSON.stringify(db));
+      const photos=notePhotoList(snapshot);
+      const date=new Date().toISOString().slice(0,10);
+      if(!photos.length){downloadShitiBlob(new Blob([JSON.stringify(snapshot,null,2)],{type:'application/json;charset=utf-8'}),'拾题_完整备份_'+date+'.json');showToast('已导出 JSON 完整备份（目前没有笔记图片）');return;}
+      if(typeof JSZip==='undefined')throw Error('图文备份组件无法加载，禁止生成缺图片的不完整备份');
+      if(!storeDB)throw Error('无法读取本机图片数据库；请在 Safari 网页 App 中备份');
+      const zip=new JSZip();zip.file('bank.json',JSON.stringify(snapshot));
+      zip.file('使用说明.txt','拾题图文完整备份：bank.json 为题目、笔记文字和学习记录；photos/ 为每题所附图片。请在拾题4.3或更新版选择「恢复备份」，直接选择此 ZIP 文件。请勿单独恢复 bank.json，否则图片无法恢复。');
+      for(let i=0;i<photos.length;i++){
+        const {qid,info}=photos[i],blob=await photoRead(info.id);
+        if(!(blob instanceof Blob))throw Error('有图片附件未能读取（'+(info.name||info.id)+'），备份已取消，避免生成不完整文件');
+        zip.file(photoArchivePath(qid,info.id),blob);
+      }
+      const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:3}});
+      downloadShitiBlob(blob,'拾题_图文完整备份_'+date+'.zip');showToast('图文备份已生成：'+photos.length+' 张图片均已包含，请妥善保存 ZIP');
+    }catch(e){showToast('备份失败：'+(e.message||e));alert('备份没有完成，旧数据仍在。\n'+(e.message||e));}
+  }
   $('exportBtn').addEventListener('click',exportBackup);
   $('importBtn').addEventListener('click',()=>$('importInput').click());
   function checkImport(obj){if(!obj||typeof obj!=='object'||!Array.isArray(obj.subjects)||!Array.isArray(obj.chapters)||!Array.isArray(obj.questions)||!Array.isArray(obj.attempts))throw Error('不是有效的拾题备份文件');if(obj.subjects.length>10000||obj.chapters.length>100000||obj.questions.length>50000||obj.attempts.length>400000)throw Error('文件条目过多');const ids=new Set(obj.subjects.map(x=>x.id));const cids=new Set(obj.chapters.map(x=>x.id));const qids=new Set(obj.questions.map(x=>x.id));if(obj.subjects.some(x=>typeof x.id!=='string'||typeof x.name!=='string')||obj.chapters.some(x=>typeof x.id!=='string'||typeof x.name!=='string'||!ids.has(x.subjectId))||obj.questions.some(x=>typeof x.id!=='string'||!ids.has(x.subjectId)||!cids.has(x.chapterId)||typeof x.stem!=='string'||!['single','multiple'].includes(x.type)||!Array.isArray(x.options)||x.options.length<2||x.options.length>8||x.options.some(y=>typeof y!=='string')||!Array.isArray(x.correct)||!x.correct.length||x.correct.some(i=>!Number.isInteger(i)||i<0||i>=x.options.length)||(x.type==='single'&&x.correct.length!==1))||obj.attempts.some(a=>!qids.has(a.questionId)||typeof a.correct!=='boolean'||!Array.isArray(a.selected)||typeof a.at!=='string'))throw Error('备份文件数据结构不完整');return{version:1,subjects:obj.subjects,chapters:obj.chapters,questions:obj.questions,attempts:obj.attempts,chapterProgress:(obj.chapterProgress&&typeof obj.chapterProgress==='object'&&!Array.isArray(obj.chapterProgress))?obj.chapterProgress:{}};}
@@ -693,19 +712,35 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     const file=e.target.files?.[0];if(!file)return;
     try{
       setRestoreStatus('正在读取：'+file.name);
-      if(file.size>40*1024*1024)throw Error('文件超过 40 MB');
-      const parsed=checkImport(JSON.parse(await readBackupText(file)));
-      if(!confirm(`即将恢复 ${parsed.subjects.length} 个科目、${parsed.questions.length} 道题和 ${parsed.attempts.length} 条答题记录。\n\n这会【覆盖】本设备当前题库及历史记录，不能撤销！请确认已备份本设备数据。\n\n确定继续吗？`)){
+      if(file.size>250*1024*1024)throw Error('备份文件超过 250 MB');
+      let payload=null,parsed,photoCount=0;
+      if(/\.zip$/i.test(file.name)||/zip/i.test(file.type)){
+        payload=await readPhotoZip(file);parsed=payload.parsed;photoCount=payload.photos.length;
+        if(photoCount&&(!storeDB||storeMode!=='idb'))throw Error('当前打开方式不支持可靠的图片数据库，请先在 Safari 打开 GitHub Pages 网页 App');
+      }else{
+        parsed=checkImport(JSON.parse(await readBackupText(file)));
+        if(notePhotoList(parsed).length)throw Error('此 JSON 含图片信息但不含图片本体，请选择图文完整 ZIP 备份');
+      }
+      if(!confirm(`即将恢复 ${parsed.subjects.length} 个科目、${parsed.questions.length} 道题、${parsed.attempts.length} 条答题记录${photoCount?'及 '+photoCount+' 张笔记图片':''}。\n\n这会【覆盖】本设备当前题库及历史记录，不能撤销！请确认已备份本设备数据。\n\n确定继续吗？`)){
         setRestoreStatus('已取消恢复：原题库没有改变。');return;
       }
-      setRestoreStatus('已通过文件校验，正在写入本设备的大题库存储（请保持页面打开）……');
+      if(payload&&photoCount){
+        setRestoreStatus(`正在保存 ${photoCount} 张笔记图片，请不要关闭页面……`);
+        for(const {qid,info} of payload.photos){
+          const entry=payload.zip.file(photoArchivePath(qid,info.id));
+          const data=await entry.async('uint8array');
+          if(data.length>8*1024*1024)throw Error('单张图片超过 8MB：'+(info.name||info.id));
+          await photoWrite(info.id,new Blob([data],{type:info.mime}));
+        }
+      }
+      setRestoreStatus('图片已保存，正在写入题库与学习记录……');
       await saveConfirmed(parsed);
       db=parsed;state.quiz=null;resetEditor();
       $('practiceSettings').hidden=false;$('practiceContent').innerHTML='';renderAll();switchTab('home');
-      setRestoreStatus(`✅ 已写入并核对：${parsed.subjects.length} 个科目、${parsed.chapters.length} 个章节、${parsed.questions.length} 道题、${parsed.attempts.length} 条作答记录。请关闭后重新打开一次确认数据仍在。`);
-      showToast('备份导入成功');
+      setRestoreStatus(`✅ 已写入并核对：${parsed.subjects.length} 个科目、${parsed.chapters.length} 个章节、${parsed.questions.length} 道题、${parsed.attempts.length} 条作答记录、${photoCount} 张图片。请重新打开一次确认数据仍在。`);
+      showToast('完整备份恢复成功');
     }catch(err){
-      const message=err instanceof SyntaxError?'文件内容不是有效的 JSON。请选择拾题「备份」按钮导出的原始 .json 文件。':(err.message||'文件无法识别');
+      const message=err instanceof SyntaxError?'文件格式不正确，请选择拾题 JSON 或图文 ZIP 备份。':(err.message||'文件无法识别');
       setRestoreStatus('导入失败：'+message,true);showToast('导入失败：'+message);
     }finally{e.target.value='';}
   }
@@ -905,6 +940,45 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   // ===== 批量导入模块结束 =====
 
   $('goBulk').addEventListener('click',()=>switchTab('bulk'));
+  // 4.3: Image binaries are deliberately stored separately from the 5,841-question bank.
+  // Reuse the v4.0.2 IndexedDB snapshots store: no migration or schema-version bump.
+  function photoKey(id){return 'note-image:'+id;}
+  function photoRead(id){return new Promise((resolve,reject)=>{
+    if(!storeDB){reject(Error('本浏览器不支持图片所需的 IndexedDB，请通过 Safari 打开已部署的 GitHub Pages 网页 App'));return;}
+    let tx;try{tx=storeDB.transaction('snapshots','readonly');const req=tx.objectStore('snapshots').get(photoKey(id));req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||Error('图片读取失败'));}
+    catch(err){reject(err);}
+  });}
+  function photoWrite(id,blob){return new Promise((resolve,reject)=>{
+    if(!storeDB){reject(Error('当前环境无法可靠保存图片，请通过 Safari 打开已部署的 GitHub Pages 网页 App'));return;}
+    try{const tx=storeDB.transaction('snapshots','readwrite');tx.objectStore('snapshots').put(blob,photoKey(id));tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error||Error('图片保存失败（可能是存储空间不足）'));tx.onerror=()=>reject(tx.error||Error('图片写入失败'));}
+    catch(err){reject(err);}
+  });}
+  function photoRemove(id){return new Promise((resolve,reject)=>{
+    if(!storeDB){reject(Error('无法访问图片数据库'));return;}
+    try{const tx=storeDB.transaction('snapshots','readwrite');tx.objectStore('snapshots').delete(photoKey(id));tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error||Error('图片删除失败'));tx.onerror=()=>reject(tx.error||Error('图片删除失败'));}
+    catch(err){reject(err);}
+  });}
+  function notePhotoCards(q){return (Array.isArray(q.noteImages)?q.noteImages:[]).map(p=>`<div class="note-photo-card"><button type="button" class="note-photo-view" data-note-photo-view="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="点按放大图片"><img data-note-photo-thumb="${esc(p.id)}" alt="${esc(p.name||'笔记图片')}" loading="lazy"><span>查看大图</span></button><button class="note-photo-delete" type="button" data-note-photo-delete="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="删除本张图片">×</button></div>`).join('');}
+  function downloadShitiBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000);}
+  function notePhotoList(snapshot){return snapshot.questions.flatMap(q=>(Array.isArray(q.noteImages)?q.noteImages:[]).map(info=>({qid:q.id,info})));}
+  function photoArchivePath(qid,imageId){return 'photos/'+encodeURIComponent(qid)+'/'+encodeURIComponent(imageId);}
+  async function readPhotoZip(file){
+    if(typeof JSZip==='undefined')throw Error('图片备份组件不可用');
+    const zip=await JSZip.loadAsync(file);const bank=zip.file('bank.json');
+    if(!bank)throw Error('这不是拾题图文备份：压缩包缺少 bank.json');
+    const parsed=checkImport(JSON.parse(await bank.async('string')));
+    const photos=notePhotoList(parsed);
+    if(photos.length>30000)throw Error('图片数量超过限制');
+    let size=0;
+    for(const {qid,info} of photos){
+      if(!info||typeof info.id!=='string'||!info.id||typeof info.mime!=='string'||!info.mime.startsWith('image/'))throw Error('图片元数据不完整');
+      if(!zip.file(photoArchivePath(qid,info.id)))throw Error('图片文件丢失：'+(info.name||info.id));
+      size+=Number(info.size)||0;
+      if(size>400*1024*1024)throw Error('图片总大小超过400MB，为保护本设备存储，请拆分备份');
+    }
+    return {parsed,zip,photos};
+  }
+
   // ===== 拾题：单选即判题 + 每题私人笔记 =====
   (() => {
     const css = document.createElement('style');
@@ -920,7 +994,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       noteTimer = setTimeout(() => { noteTimer = null; save(); }, 400);
     };
     window.addEventListener('pagehide', flushNotes);
-    const noteMarkup = (q, compact = false) => `<div class="personal-note${compact ? ' compact' : ''}"><div class="personal-note-title">📝 我的笔记</div><textarea data-personal-note="${esc(q.id)}" maxlength="10000" placeholder="记下你的解题思路、易错点或需要复习的知识…">${esc(q.personalNote || '')}</textarea><p class="personal-note-tip">笔记独立于题目解析，自动保存并包含在题库备份中。</p></div>`;
+    const noteMarkup = (q, compact = false) => `<div class="personal-note${compact ? ' compact' : ''}" data-note-box="${esc(q.id)}"><div class="personal-note-title">📝 我的笔记</div><textarea data-personal-note="${esc(q.id)}" maxlength="10000" placeholder="记下你的解题思路、易错点或需要复习的知识…；也可以粘贴截图">${esc(q.personalNote || '')}</textarea><div class="note-photo-toolbar"><label class="note-photo-add">＋ 插入图片<input class="note-photo-input" type="file" data-note-photo-input="${esc(q.id)}" accept="image/*,.heic,.heif" multiple aria-label="为本题选择图片"></label><span class="note-photo-hint">从相册或文件选图，也可在笔记框粘贴截图；单题最多 8 张</span></div><div class="note-photo-grid" data-note-photo-grid="${esc(q.id)}">${notePhotoCards(q)}</div><p class="personal-note-tip">文字自动保存；图片保存在本设备的独立数据库中。请用「备份」导出含图片的 ZIP，普通旧版 JSON 不包含图片。</p></div>`;
 
     const oldRenderQuiz = renderQuiz;
     renderQuiz = function () {
@@ -979,7 +1053,139 @@ https://github.com/nodeca/pako/blob/main/LICENSE
   })();
   // ===== 补丁结束 =====
 
-  // ===== 拾题 4.2：iPad 高性能题目管理、多选与安全删除 =====
+  // ===== 拾题 4.3：笔记图片（本机独立图片存储 + 图文 ZIP 备份） =====
+  (()=>{
+    const style=document.createElement('style');
+    style.textContent=`
+      .note-photo-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:11px}
+      .note-photo-add{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border-radius:9px;background:#eef1ff;color:#3c4fc4;font-size:13px;font-weight:700;padding:0 14px;cursor:pointer;position:relative;overflow:hidden;border:1px solid #dce3ff}
+      .note-photo-add:focus-within{outline:2px solid #8b9bf7}
+      .note-photo-input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;font-size:30px}
+      .note-photo-hint{font-size:12px;color:#75819b;line-height:1.5}
+      .note-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:11px;margin-top:12px}
+      .note-photo-grid:empty{display:none}
+      .note-photo-card{position:relative;border:1px solid #dce2ef;background:#fff;border-radius:10px;overflow:hidden;min-width:0}
+      .note-photo-view{width:100%;background:none;border:0;color:#687895;padding:0;cursor:pointer;display:flex;flex-direction:column;align-items:center;font-size:11px}
+      .note-photo-view img{display:block;width:100%;height:92px;object-fit:contain;background:#f3f5fb}
+      .note-photo-view span{padding:4px 0}
+      .note-photo-delete{position:absolute;right:3px;top:3px;min-width:25px;height:25px;border-radius:50%;background:#fff;border:1px solid #d7dbe4;color:#c93f58;cursor:pointer;font-size:20px;line-height:18px;font-weight:700}
+      #shitiPhotoDialog{max-width:min(95vw,1050px);max-height:94vh;border:0;border-radius:15px;padding:12px;background:#fff;box-shadow:0 18px 65px #12223c65}
+      #shitiPhotoDialog::backdrop{background:#081427ba}
+      #shitiPhotoDialog img{display:block;max-width:calc(95vw - 26px);max-height:calc(82vh - 35px);object-fit:contain;margin:0 auto}
+      #shitiPhotoDialog .photo-close{display:block;margin:0 0 9px auto;border:1px solid #dfe3f0;border-radius:9px;background:#fff;padding:7px 14px;cursor:pointer}
+      @media(max-width:720px){.note-photo-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}.note-photo-add{min-height:44px}.note-photo-view img{height:95px}}
+    `;
+    document.head.appendChild(style);
+    const urls=new Map();
+    const dlg=document.createElement('dialog');dlg.id='shitiPhotoDialog';dlg.innerHTML='<button type="button" class="photo-close">关闭 ×</button><img alt="笔记图片大图">';document.body.appendChild(dlg);
+    dlg.querySelector('.photo-close').addEventListener('click',()=>dlg.close());
+    dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close();});
+    window.addEventListener('pagehide',()=>{for(const url of urls.values())URL.revokeObjectURL(url);urls.clear();});
+    async function objectURL(id){
+      if(urls.has(id))return urls.get(id);
+      const blob=await photoRead(id);
+      if(!(blob instanceof Blob))throw Error('该图片在本设备数据库中找不到，请从图文 ZIP 备份恢复');
+      const url=URL.createObjectURL(blob);urls.set(id,url);return url;
+    }
+    async function displayThumb(img){
+      if(!img.isConnected)return;
+      const id=img.dataset.notePhotoThumb;
+      if(!id)return;
+      try{const url=await objectURL(id);if(img.isConnected&&img.dataset.notePhotoThumb===id)img.src=url;}
+      catch(e){img.alt='图片未找到';img.title=e.message;}
+    }
+    const io=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
+      for(const entry of entries){if(!entry.isIntersecting)continue;io.unobserve(entry.target);displayThumb(entry.target);}
+    },{rootMargin:'260px'}):null;
+    function watchThumbs(root){root.querySelectorAll('img[data-note-photo-thumb]:not([data-photo-watched])').forEach(img=>{
+      img.dataset.photoWatched='1';if(io)io.observe(img);else displayThumb(img);
+    });}
+    for(const id of ['practiceContent','questionList','wrongContent']){
+      const root=$(id);if(!root)continue;
+      const mo=new MutationObserver(()=>watchThumbs(root));mo.observe(root,{childList:true,subtree:true});
+      watchThumbs(root);
+    }
+    function refreshCards(qid){
+      const q=question(qid);if(!q)return;
+      document.querySelectorAll('[data-note-photo-grid]').forEach(grid=>{
+        if(grid.dataset.notePhotoGrid!==qid)return;
+        grid.innerHTML=notePhotoCards(q);
+        watchThumbs(grid);
+      });
+    }
+    async function optimizePicture(file){
+      if(!file.type.startsWith('image/')&&!/\.(heic|heif)$/i.test(file.name))throw Error('请选择图片文件');
+      if(file.size>25*1024*1024)throw Error('原图超过25MB，请先在相册裁剪或截屏');
+      // Limit dimensions to keep anatomical textbook screenshots readable without keeping giant photos.
+      const src=URL.createObjectURL(file);
+      try{
+        const img=new Image();await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('图片无法解码，请用截图或 JPG/PNG 文件'));img.src=src;});
+        const ratio=Math.min(1,1800/Math.max(img.naturalWidth,img.naturalHeight));
+        const canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.naturalWidth*ratio));canvas.height=Math.max(1,Math.round(img.naturalHeight*ratio));
+        const ctx=canvas.getContext('2d');if(!ctx)throw Error('无法创建图片处理器');
+        const isPng=file.type==='image/png';if(!isPng){ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);}
+        ctx.drawImage(img,0,0,canvas.width,canvas.height);
+        const mime=isPng?'image/png':'image/jpeg';
+        const out=await new Promise(resolve=>canvas.toBlob(resolve,mime,.84));
+        if(!out)throw Error('图片压缩失败');
+        if(out.size>8*1024*1024)throw Error('图片处理后仍超过8MB，请先裁剪');
+        return new Blob([out],{type:mime});
+      }finally{URL.revokeObjectURL(src);}
+    }
+    let busy=false;
+    async function insertImages(qid,files){
+      if(busy){showToast('图片还在保存，请稍等');return;}
+      const q=question(qid);if(!q)return;
+      if(!storeDB||storeMode!=='idb'){showToast('请用 Safari 打开 GitHub Pages 网页 App 并启用可靠本地数据库');return;}
+      if(!Array.isArray(q.noteImages))q.noteImages=[];
+      if(q.noteImages.length+files.length>8){showToast('每道题最多添加 8 张图片');return;}
+      busy=true;
+      try{
+        for(const f of files){
+          const blob=await optimizePicture(f),id=uid();
+          await photoWrite(id,blob);
+          const info={id,name:String(f.name||'笔记图片').slice(0,140),mime:blob.type,size:blob.size};
+          q.noteImages.push(info);
+          try{await saveConfirmed(JSON.parse(JSON.stringify(db)));}
+          catch(e){q.noteImages.pop();await photoRemove(id).catch(()=>{});throw e;}
+        }
+        refreshCards(qid);showToast('图片已保存；下次备份将自动包含这些图片');
+      }catch(e){showToast('图片保存失败：'+(e.message||e));alert('图片未能保存：'+(e.message||e));}
+      finally{busy=false;}
+    }
+    document.addEventListener('change',e=>{
+      const input=e.target.closest('input[data-note-photo-input]');if(!input)return;
+      const files=Array.from(input.files||[]);input.value='';if(files.length)insertImages(input.dataset.notePhotoInput,files);
+    });
+    document.addEventListener('paste',e=>{
+      const area=e.target.closest('textarea[data-personal-note]');if(!area)return;
+      const items=Array.from(e.clipboardData?.items||[]);
+      const files=items.filter(item=>item.type.startsWith('image/')).map(item=>item.getAsFile()).filter(Boolean);
+      if(files.length){e.preventDefault();insertImages(area.dataset.personalNote,files);}
+    });
+    document.addEventListener('click',async e=>{
+      const remove=e.target.closest('button[data-note-photo-delete]');
+      if(remove){
+        const qid=remove.dataset.notePhotoQuestion,id=remove.dataset.notePhotoDelete,q=question(qid);
+        if(!q||!Array.isArray(q.noteImages))return;
+        if(!confirm('确定删除这张笔记图片吗？删除后只能从以前的图文 ZIP 备份恢复。'))return;
+        const prior=q.noteImages.slice();q.noteImages=q.noteImages.filter(p=>p.id!==id);
+        try{await saveConfirmed(JSON.parse(JSON.stringify(db)));}
+        catch(err){q.noteImages=prior;save();refreshCards(qid);showToast('删除图片时保存失败：'+(err.message||err));return;}
+        try{await photoRemove(id);}catch(err){console.warn('图片已移出笔记，但清理旧图片字节失败',err);}
+        if(urls.has(id)){URL.revokeObjectURL(urls.get(id));urls.delete(id);}refreshCards(qid);showToast('图片已删除');
+        return;
+      }
+      const view=e.target.closest('button[data-note-photo-view]');
+      if(view){
+        try{dlg.querySelector('img').src=await objectURL(view.dataset.notePhotoView);if(typeof dlg.showModal==='function')dlg.showModal();else{dlg.setAttribute('open','');dlg.style.position='fixed';dlg.style.zIndex='99999';}}
+        catch(err){showToast(err.message||'图片无法打开');}
+      }
+    });
+  })();
+  // ===== 拾题 4.3 图片笔记功能结束 =====
+
+  // ===== 拾题 4.3：iPad 高性能题目管理、多选与安全删除 =====
   (() => {
     const selectedIds=new Set();
     const root=$('questionList'),filter=$('qFilterSubject'),search=$('qSearch'),counter=$('questionListCount');
@@ -1096,7 +1302,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
       showToast(`删除成功：${ids.size} 道题、${attemptsRemoved} 条历史作答`);
     });
   })();
-  // ===== 拾题 4.2 高性能批量管理结束 =====
+  // ===== 拾题 4.3 高性能批量管理结束 =====
 
   // ===== 拾题 3.2：科目重命名补丁（兼容 3.0 / 3.1） =====
   (() => {
