@@ -1,5 +1,5 @@
 /* 拾题 iPad 离线网页应用：仅缓存静态代码与图标，不接触私人题库。 */
-const CACHE_NAME='shiti-pwa-shell-v4.3.0';
+const CACHE_NAME='shiti-pwa-shell-v4.4.0';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#f7f8fb">
-  <title>拾题 4.3 · 图片笔记 · iPad 离线题库</title>
+  <title>拾题 4.4 · 裁剪涂画图片笔记 · iPad 离线题库</title>
   <style>
     :root{--bg:#f7f8fb;--card:#fff;--text:#20283c;--muted:#798297;--line:#e9edf4;--accent:#485fe2;--pale:#eff1ff;--green:#167d57;--green-bg:#e9f8f1;--red:#c94b60;--red-bg:#fff0f2;--radius:16px;--shadow:0 9px 34px rgba(37,50,96,.045)}
     *{box-sizing:border-box} html{font-size:16px} body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif} button,input,select,textarea{font:inherit} button{cursor:pointer} [hidden]{display:none!important} :focus-visible{outline:3px solid #9ba8ff;outline-offset:2px}
@@ -958,7 +958,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     try{const tx=storeDB.transaction('snapshots','readwrite');tx.objectStore('snapshots').delete(photoKey(id));tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error||Error('图片删除失败'));tx.onerror=()=>reject(tx.error||Error('图片删除失败'));}
     catch(err){reject(err);}
   });}
-  function notePhotoCards(q){return (Array.isArray(q.noteImages)?q.noteImages:[]).map(p=>`<div class="note-photo-card"><button type="button" class="note-photo-view" data-note-photo-view="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="点按放大图片"><img data-note-photo-thumb="${esc(p.id)}" alt="${esc(p.name||'笔记图片')}" loading="lazy"><span>查看大图</span></button><button class="note-photo-delete" type="button" data-note-photo-delete="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="删除本张图片">×</button></div>`).join('');}
+  function notePhotoCards(q){return (Array.isArray(q.noteImages)?q.noteImages:[]).map(p=>`<div class="note-photo-card"><button type="button" class="note-photo-view" data-note-photo-view="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="点按放大图片"><img data-note-photo-thumb="${esc(p.id)}" alt="${esc(p.name||'笔记图片')}" loading="lazy"><span>查看大图</span></button><button type="button" class="note-photo-edit" data-note-photo-edit="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="裁剪和涂画图片">✎ 编辑</button><button class="note-photo-delete" type="button" data-note-photo-delete="${esc(p.id)}" data-note-photo-question="${esc(q.id)}" title="删除本张图片">×</button></div>`).join('');}
   function downloadShitiBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),12000);}
   function notePhotoList(snapshot){return snapshot.questions.flatMap(q=>(Array.isArray(q.noteImages)?q.noteImages:[]).map(info=>({qid:q.id,info})));}
   function photoArchivePath(qid,imageId){return 'photos/'+encodeURIComponent(qid)+'/'+encodeURIComponent(imageId);}
@@ -1182,6 +1182,176 @@ https://github.com/nodeca/pako/blob/main/LICENSE
         catch(err){showToast(err.message||'图片无法打开');}
       }
     });
+  // ===== 拾题 4.4：图像裁剪与触控涂画（保留原图直到保存） =====
+  (function enableImageEditor(){
+    const css=document.createElement('style');
+    css.textContent=`
+      .note-photo-edit{position:absolute;left:4px;top:4px;z-index:2;min-height:29px;padding:4px 8px;border:1px solid #d5dcf0;background:#ffffffed;border-radius:8px;color:#394eb8;font-size:12px;font-weight:800;cursor:pointer;box-shadow:0 2px 9px #18274418}
+      #shitiImageEditor{width:min(1080px,98vw);max-width:98vw;max-height:96vh;max-height:96dvh;overflow:hidden;padding:0;border:0;border-radius:17px;background:#fff;color:#1f2f4a;box-shadow:0 24px 80px #08142c66}
+      #shitiImageEditor::backdrop{background:#091327bc}
+      .sie-shell{display:flex;flex-direction:column;max-height:96vh;max-height:96dvh;min-height:min(74vh,610px)}
+      .sie-head{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid #ebedf6;padding:13px 16px}
+      .sie-head strong{font-size:17px}.sie-head p{font-size:12px;color:#687890;margin:3px 0 0}
+      .sie-close{border:1px solid #e0e4ef;background:white;border-radius:9px;padding:9px 13px;color:#34415e;font-size:14px;cursor:pointer}
+      .sie-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-bottom:1px solid #eff1f6;padding:10px 14px;max-height:155px;overflow-y:auto}
+      .sie-btn{font:inherit;font-size:13px;color:#39445f;background:#fff;border:1px solid #d9deeb;border-radius:9px;padding:8px 11px;min-height:38px;cursor:pointer;white-space:nowrap}
+      .sie-btn.selected{color:#2c48bb;border-color:#7790ef;background:#eef2ff;font-weight:800}
+      .sie-btn:disabled{opacity:.43;cursor:default}
+      .sie-colors{display:flex;align-items:center;gap:7px;margin-left:2px}
+      .sie-color{width:27px;height:27px;border:2px solid white;box-shadow:0 0 0 1px #ced4e3;border-radius:50%;cursor:pointer;padding:0;flex-shrink:0}
+      .sie-color.selected{box-shadow:0 0 0 3px #879af3}
+      .sie-size{display:inline-flex;gap:4px;align-items:center;white-space:nowrap;font-size:12px;color:#62718c}
+      .sie-size input{width:75px;accent-color:#5165db}
+      .sie-stage{flex:1;min-height:115px;overflow:auto;background:#e9edf5;display:flex;align-items:center;justify-content:center;padding:12px;overscroll-behavior:contain}
+      .sie-canvas-wrap{position:relative;flex:0 1 auto;width:max-content;max-width:100%;max-height:100%;box-shadow:0 5px 22px #23334d25;background:#fff}
+      .sie-canvas-wrap canvas:first-child{display:block;width:auto;height:auto;max-width:100%;max-height:calc(96dvh - 265px);object-fit:contain}
+      #sieOverlay{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+      .sie-foot{display:flex;gap:9px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:11px 16px;border-top:1px solid #e8ebf4;background:#fff}
+      .sie-tip{font-size:12px;color:#66748b;flex:1;min-width:165px;line-height:1.45}
+      .sie-save{background:#5062dc;border:1px solid #5062dc;color:#fff;font-weight:800}
+      .sie-save:disabled{opacity:.45}
+      @media(max-width:720px){#shitiImageEditor{border-radius:12px}.sie-tools{gap:6px;padding:8px;max-height:185px}.sie-btn{padding:9px;font-size:12px}.sie-color{width:29px;height:29px}.sie-head{padding:9px 12px}.sie-head strong{font-size:15px}.sie-foot{padding:9px 12px;gap:7px}.sie-canvas-wrap canvas:first-child{max-height:calc(96dvh - 315px)}.sie-tip{min-width:115px}}
+    `;
+    document.head.appendChild(css);
+    const editorDlg=document.createElement('dialog');
+    editorDlg.id='shitiImageEditor';
+    editorDlg.innerHTML=`<div class="sie-shell"><header class="sie-head"><div><strong>编辑笔记图片</strong><p>裁剪不需要的部分，或用手指、Apple Pencil 涂画重点</p></div><button type="button" class="sie-close" data-sie="cancel">取消 ×</button></header>
+      <div class="sie-tools" role="toolbar" aria-label="图片编辑工具">
+        <button type="button" class="sie-btn selected" data-sie-mode="draw">✎ 画笔</button><button type="button" class="sie-btn" data-sie-mode="crop">▧ 裁剪</button><button type="button" class="sie-btn" data-sie="cropApply" disabled>应用裁剪</button>
+        <div class="sie-colors" aria-label="画笔颜色"><button type="button" class="sie-color selected" data-sie-color="#e12b40" style="background:#e12b40" aria-label="红色"></button><button type="button" class="sie-color" data-sie-color="#2563eb" style="background:#2563eb" aria-label="蓝色"></button><button type="button" class="sie-color" data-sie-color="#111827" style="background:#111827" aria-label="黑色"></button></div>
+        <label class="sie-size">粗细 <input data-sie="size" type="range" min="2" max="22" value="5" step="1"></label>
+        <button type="button" class="sie-btn" data-sie="undo" disabled>↶ 撤销</button><button type="button" class="sie-btn" data-sie="reset" disabled>恢复原图</button>
+      </div>
+      <div class="sie-stage"><div class="sie-canvas-wrap"><canvas id="sieCanvas" aria-label="待编辑图片"></canvas><canvas id="sieOverlay" aria-label="触控涂画或裁剪区域"></canvas></div></div>
+      <footer class="sie-foot"><span class="sie-tip" id="sieTip">直接在图片上画线；选择裁剪后拖动框出需要保留的区域。</span><button type="button" class="sie-btn" data-sie="cancel">不保存</button><button type="button" class="sie-btn sie-save" data-sie="save" disabled>保存修改</button></footer></div>`;
+    document.body.appendChild(editorDlg);
+    const canvas=editorDlg.querySelector('#sieCanvas'),layer=editorDlg.querySelector('#sieOverlay');
+    const ctx=canvas.getContext('2d'), lctx=layer.getContext('2d');
+    const cropBtn=editorDlg.querySelector('[data-sie="cropApply"]');
+    const undoBtn=editorDlg.querySelector('[data-sie="undo"]');
+    const resetBtn=editorDlg.querySelector('[data-sie="reset"]');
+    const saveBtn=editorDlg.querySelector('[data-sie="save"]');
+    const tip=editorDlg.querySelector('#sieTip');
+    let edit=null;
+    function updateButtons(){if(!edit)return;cropBtn.disabled=edit.mode!=='crop'||!edit.selection||edit.selection.w<6||edit.selection.h<6;undoBtn.disabled=!edit.ops.length;resetBtn.disabled=!edit.ops.length;saveBtn.disabled=!edit.ops.length||edit.saving;}
+    function setMode(mode){if(!edit)return;edit.mode=mode;edit.selection=null;edit.pointer=null;lctx.clearRect(0,0,layer.width,layer.height);editorDlg.querySelectorAll('[data-sie-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.sieMode===mode));tip.textContent=mode==='crop'?'用手指框住想保留的部分，再点「应用裁剪」；其他部分将去掉。':'直接用手指或 Apple Pencil 在图上标注；可选择红、蓝、黑色。';updateButtons();}
+    function drawStroke(c,op){
+      const pts=op.pts;if(!pts.length)return;
+      c.lineCap='round';c.lineJoin='round';c.strokeStyle=op.color;c.fillStyle=op.color;c.lineWidth=op.size;
+      if(pts.length===1){c.beginPath();c.arc(pts[0].x,pts[0].y,Math.max(1,op.size/2),0,Math.PI*2);c.fill();return;}
+      c.beginPath();c.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)c.lineTo(pts[i].x,pts[i].y);c.stroke();
+    }
+    function redoAll(){
+      if(!edit)return;
+      let work=document.createElement('canvas');work.width=edit.img.naturalWidth;work.height=edit.img.naturalHeight;
+      let wc=work.getContext('2d');wc.drawImage(edit.img,0,0);
+      for(const op of edit.ops){
+        if(op.kind==='stroke')drawStroke(wc,op);
+        else if(op.kind==='crop'){
+          const next=document.createElement('canvas');next.width=Math.max(1,Math.round(op.w));next.height=Math.max(1,Math.round(op.h));
+          next.getContext('2d').drawImage(work,op.x,op.y,op.w,op.h,0,0,next.width,next.height);
+          work=next;wc=work.getContext('2d');
+        }
+      }
+      canvas.width=work.width;canvas.height=work.height;ctx.drawImage(work,0,0);
+      layer.width=canvas.width;layer.height=canvas.height;
+      edit.pointer=null;edit.selection=null;updateButtons();
+    }
+    function pos(e){const r=layer.getBoundingClientRect();return {x:Math.max(0,Math.min(layer.width,(e.clientX-r.left)*(layer.width/r.width))),y:Math.max(0,Math.min(layer.height,(e.clientY-r.top)*(layer.height/r.height)))};}
+    function highlight(){
+      lctx.clearRect(0,0,layer.width,layer.height);if(!edit||!edit.selection)return;
+      const s=edit.selection;lctx.save();lctx.fillStyle='rgba(11,23,42,.25)';
+      lctx.fillRect(0,0,layer.width,s.y);lctx.fillRect(0,s.y,s.x,s.h);lctx.fillRect(s.x+s.w,s.y,layer.width-s.x-s.w,s.h);lctx.fillRect(0,s.y+s.h,layer.width,layer.height-s.y-s.h);
+      lctx.strokeStyle='#fff';lctx.lineWidth=Math.max(2,layer.width/650);lctx.setLineDash([Math.max(6,layer.width/150),Math.max(4,layer.width/260)]);lctx.strokeRect(s.x,s.y,s.w,s.h);lctx.restore();
+    }
+    function applyPointerEnd(e){if(!edit||!edit.pointer||edit.pointer.id!==e.pointerId)return;edit.pointer=null;updateButtons();}
+    layer.addEventListener('pointerdown',e=>{
+      if(!edit||edit.saving||!e.isPrimary)return;
+      e.preventDefault();try{layer.setPointerCapture(e.pointerId);}catch(err){}
+      const p=pos(e);edit.pointer={id:e.pointerId,start:p};
+      if(edit.mode==='crop'){edit.selection={x:p.x,y:p.y,w:0,h:0};highlight();}
+      else{
+        const widthRatio=canvas.width/Math.max(1,layer.getBoundingClientRect().width);
+        const op={kind:'stroke',color:edit.color,size:Number(editorDlg.querySelector('[data-sie="size"]').value)*widthRatio,pts:[p]};
+        edit.ops.push(op);edit.pointer.op=op;drawStroke(ctx,op);updateButtons();
+      }
+    });
+    layer.addEventListener('pointermove',e=>{
+      if(!edit||!edit.pointer||edit.pointer.id!==e.pointerId)return;e.preventDefault();
+      const p=pos(e);
+      if(edit.mode==='crop'){
+        const a=edit.pointer.start;
+        edit.selection={x:Math.min(a.x,p.x),y:Math.min(a.y,p.y),w:Math.abs(p.x-a.x),h:Math.abs(p.y-a.y)};highlight();
+      }else{
+        const op=edit.pointer.op,prior=op.pts[op.pts.length-1];if(!prior)return;
+        if(Math.abs(prior.x-p.x)+Math.abs(prior.y-p.y)<.7)return;
+        op.pts.push(p);ctx.lineCap='round';ctx.lineJoin='round';ctx.strokeStyle=op.color;ctx.lineWidth=op.size;ctx.beginPath();ctx.moveTo(prior.x,prior.y);ctx.lineTo(p.x,p.y);ctx.stroke();
+      }
+    });
+    layer.addEventListener('pointerup',applyPointerEnd);
+    layer.addEventListener('pointercancel',e=>{applyPointerEnd(e);});
+    editorDlg.querySelectorAll('[data-sie-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.sieMode)));
+    editorDlg.querySelectorAll('[data-sie-color]').forEach(button=>button.addEventListener('click',()=>{
+      if(!edit)return;edit.color=button.dataset.sieColor;editorDlg.querySelectorAll('[data-sie-color]').forEach(b=>b.classList.toggle('selected',b===button));setMode('draw');
+    }));
+    cropBtn.addEventListener('click',()=>{
+      if(!edit||cropBtn.disabled)return;const s=edit.selection;
+      // At least 6 pixels in each dimension; do not allow changes to disappear silently.
+      const x=Math.max(0,Math.floor(s.x)),y=Math.max(0,Math.floor(s.y)),w=Math.min(canvas.width-x,Math.ceil(s.w)),h=Math.min(canvas.height-y,Math.ceil(s.h));
+      if(w<6||h<6)return;edit.ops.push({kind:'crop',x,y,w,h});redoAll();setMode('draw');
+    });
+    undoBtn.addEventListener('click',()=>{if(!edit||!edit.ops.length)return;edit.ops.pop();redoAll();});
+    resetBtn.addEventListener('click',()=>{if(!edit||!edit.ops.length)return;if(confirm('恢复到刚打开编辑器时的原图吗？未保存的裁剪和涂画将清除。')){edit.ops=[];redoAll();setMode('draw');}});
+    function cancel(){if(edit?.saving)return;editorDlg.close();}
+    editorDlg.querySelectorAll('[data-sie="cancel"]').forEach(button=>button.addEventListener('click',cancel));
+    editorDlg.addEventListener('cancel',e=>{if(edit?.saving)e.preventDefault();});
+    editorDlg.addEventListener('close',()=>{if(edit?.srcURL){URL.revokeObjectURL(edit.srcURL);}edit=null;});
+    async function openEditor(qid,id){
+      if(edit){showToast('请先关闭当前图片编辑器');return;}
+      if(!storeDB||storeMode!=='idb'){showToast('当前环境不支持安全编辑图片，请在 iPad 的 Safari 网页 App 内使用');return;}
+      const q=question(qid);if(!q||!Array.isArray(q.noteImages)||!q.noteImages.some(x=>x.id===id)){showToast('这张图片已不存在');return;}
+      try{
+        const blob=await photoRead(id);if(!(blob instanceof Blob))throw Error('图片文件未找到，请使用图文备份恢复');
+        const source=URL.createObjectURL(blob),img=new Image();
+        try{await new Promise((resolve,reject)=>{img.onload=resolve;img.onerror=()=>reject(Error('这张图片无法解码'));img.src=source;});}
+        catch(e){URL.revokeObjectURL(source);throw e;}
+        edit={qid,id,blob,img,srcURL:source,ops:[],mode:'draw',color:'#e12b40',pointer:null,selection:null,saving:false};
+        editorDlg.querySelectorAll('[data-sie-color]').forEach(b=>b.classList.toggle('selected',b.dataset.sieColor===edit.color));
+        redoAll();setMode('draw');editorDlg.showModal();
+      }catch(e){showToast('无法编辑图片：'+(e.message||e));}
+    }
+    saveBtn.addEventListener('click',async()=>{
+      if(!edit||edit.saving||!edit.ops.length)return;
+      const current=edit, q=question(current.qid),info=q?.noteImages?.find(p=>p.id===current.id);
+      if(!info){showToast('图片已被移除，无法保存');return;}
+      current.saving=true;saveBtn.disabled=true;tip.textContent='正在保存编辑后的图片，请勿关闭网页…';
+      const oldMeta={mime:info.mime,size:info.size,editedAt:info.editedAt};
+      let modified=false;
+      try{
+        const toBlob=(mime,quality)=>new Promise(resolve=>canvas.toBlob(resolve,mime,quality));
+        let mime=current.blob.type==='image/png'?'image/png':'image/jpeg';
+        let updated=await toBlob(mime,.92);
+        if(!updated)throw Error('无法导出图片');
+        if(updated.size>8*1024*1024&&mime==='image/png'){mime='image/jpeg';updated=await toBlob('image/jpeg',.94);}
+        if(!updated||updated.size>8*1024*1024)throw Error('图片保存后超过8MB，请裁剪得更小一些');
+        await photoWrite(current.id,updated);modified=true;
+        info.mime=updated.type;info.size=updated.size;info.editedAt=new Date().toISOString();
+        await saveConfirmed(JSON.parse(JSON.stringify(db)));
+        if(urls.has(current.id)){URL.revokeObjectURL(urls.get(current.id));urls.delete(current.id);}
+        editorDlg.close();refreshCards(current.qid);showToast('图片编辑已保存，图文 ZIP 备份将包含修改后的图片');
+      }catch(e){
+        Object.assign(info,oldMeta);if(oldMeta.editedAt===undefined)delete info.editedAt;
+        if(modified){try{await photoWrite(current.id,current.blob);}catch(rollbackErr){console.error('图片回滚失败',rollbackErr);alert('图片编辑保存异常且原图恢复失败，请立即导出图文备份。');}}
+        showToast('图片编辑失败：'+(e.message||e));tip.textContent='保存失败：'+(e.message||e)+'。原图仍会尽量保留，可以重试。';
+      }finally{current.saving=false;updateButtons();}
+    });
+    document.addEventListener('click',e=>{
+      const b=e.target.closest('button[data-note-photo-edit]');if(!b)return;
+      e.preventDefault();e.stopPropagation();openEditor(b.dataset.notePhotoQuestion,b.dataset.notePhotoEdit);
+    });
+  })();
+  // ===== 拾题 4.4 图片编辑结束 =====
+
   })();
   // ===== 拾题 4.3 图片笔记功能结束 =====
 
